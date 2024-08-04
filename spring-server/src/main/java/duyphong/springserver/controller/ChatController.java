@@ -15,8 +15,15 @@ public class ChatController {
     private SimpMessagingTemplate template;
 
     @MessageMapping("/message")
-    @SendTo("room")
-    public ResponseEntity<MessageDto> sendMessage(@Payload MessageDto message) {
-        return ResponseEntity.ok(message);
+    @SendTo("/chatroom/public")
+    public MessageDto sendMessage(@Payload MessageDto message) {
+        return message;
+    }
+
+    @MessageMapping("/private-message")
+    public  MessageDto receiveMessage(@Payload MessageDto message){
+        template.convertAndSendToUser(message.getReceiverName(),"/private",message);
+        System.out.println(message.toString());
+        return message;
     }
 }

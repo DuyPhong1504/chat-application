@@ -1,7 +1,7 @@
 package duyphong.springserver.common;
 
-public enum condition {
+public enum Condition {
     JOIN,
-    ACTIVE,
-    LEFT
+    MESSAGE,
+    LEAVE
 }

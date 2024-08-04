@@ -1,6 +1,6 @@
 export default interface IMessage {
     username?: string,
-    receiver?: string,
-    connect?: boolean,
+    receivername?: string,
+    connected?: boolean,
     message?: string
 } 
