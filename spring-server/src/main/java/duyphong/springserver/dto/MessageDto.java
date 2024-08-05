@@ -11,4 +11,6 @@ public class MessageDto {
     private String message;
     private String date;
     private Condition status;
+    private String filename;
+    private String fileData;
 }

@@ -19,7 +19,7 @@ input {
 button{
   border: none;
   padding: 10px;
-  background: green;
+  background: blue;
   color:#fff;
   font-size: 1.2em;
   font-weight: bold;
@@ -28,6 +28,7 @@ button{
 
 .container{
   position: relative;
+  padding: auto;
 }
 
 .register{
@@ -123,4 +124,24 @@ ul {
 }
 .message.self{
   justify-content: end;
+}
+
+.download-button {
+  background-color: green;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.download-button:hover {
+  background-color: #0056b3;
+}
+
+.download-button:disabled {
+  background-color: #c0c0c0;
+  cursor: not-allowed;
 }
