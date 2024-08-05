@@ -29,7 +29,13 @@ public class FileUploadController {
                 String base64FileData = Base64.getEncoder().encodeToString(fileData);
                 messageDto.setFileData(base64FileData);
                 messageDto.setFilename(file.getOriginalFilename());
-                template.convertAndSend("/chatroom/public",  messageDto);
+                if(messageDto.getReceiverName() == null) {
+                    template.convertAndSend("/chatroom/public", messageDto);
+                }
+                else{
+                    template.convertAndSendToUser(messageDto.getReceiverName(),"/private",messageDto);
+                    template.convertAndSendToUser(messageDto.getSenderName(),"/private",messageDto);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }

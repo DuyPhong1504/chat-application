@@ -1,6 +1,19 @@
-import React, { useEffect, useState } from 'react'
-import { over } from 'stompjs';
-import SockJS from 'sockjs-client';
+import React, { useEffect, useState } from "react";
+import { over } from "stompjs";
+import SockJS from "sockjs-client";
+import {
+    MDBContainer,
+    MDBRow,
+    MDBCol,
+    MDBCard,
+    MDBCardBody,
+    MDBIcon,
+    MDBBtn,
+    MDBTypography,
+    MDBTextArea,
+    MDBCardHeader,
+    MDBFile
+} from "mdb-react-ui-kit";
 
 var stompClient = null;
 const Room = () => {
@@ -10,35 +23,38 @@ const Room = () => {
     const [file, setFile] = useState(null);
     const maxFileSize = 5 * 1024 * 1024;
     const [userData, setUserData] = useState({
-        username: '',
-        receivername: '',
+        username: "",
+        receivername: "",
         connected: false,
-        message: ''
+        message: "",
     });
     useEffect(() => {
         console.log(userData);
     }, [userData]);
 
     const connect = () => {
-        let Sock = new SockJS('http://localhost:8080/ws');
+        let Sock = new SockJS("http://localhost:8080/ws");
         stompClient = over(Sock);
         stompClient.connect({}, onConnected, onError);
-    }
+    };
 
     const onConnected = () => {
-        setUserData({ ...userData, "connected": true });
-        stompClient.subscribe('/chatroom/public', onMessageReceived);
-        stompClient.subscribe('/user/' + userData.username + '/private', onPrivateMessage);
+        setUserData({ ...userData, connected: true });
+        stompClient.subscribe("/chatroom/public", onMessageReceived);
+        stompClient.subscribe(
+            "/user/" + userData.username + "/private",
+            onPrivateMessage
+        );
         userJoin();
-    }
+    };
 
     const userJoin = () => {
         var chatMessage = {
             senderName: userData.username,
-            status: "JOIN"
+            status: "JOIN",
         };
         stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
-    }
+    };
 
     const onMessageReceived = (payload) => {
         var payloadData = JSON.parse(payload.body);
@@ -54,7 +70,7 @@ const Room = () => {
                 setPublicChats([...publicChats]);
                 break;
         }
-    }
+    };
 
     const onPrivateMessage = (payload) => {
         console.log(payload);
@@ -68,29 +84,28 @@ const Room = () => {
             privateChats.set(payloadData.senderName, list);
             setPrivateChats(new Map(privateChats));
         }
-    }
+    };
 
     const onError = (err) => {
         console.log(err);
-
-    }
+    };
 
     const handleMessage = (event) => {
         const { value } = event.target;
-        setUserData({ ...userData, "message": value });
-    }
+        setUserData({ ...userData, message: value });
+    };
     const sendValue = () => {
         if (stompClient) {
             var chatMessage = {
                 senderName: userData.username,
                 message: userData.message,
-                status: "MESSAGE"
+                status: "MESSAGE",
+                date: new Date().toLocaleString()
             };
-            console.log(chatMessage);
             stompClient.send("/app/message", {}, JSON.stringify(chatMessage));
-            setUserData({ ...userData, "message": "" });
+            setUserData({ ...userData, message: "" });
         }
-    }
+    };
 
     const sendPrivateValue = () => {
         if (stompClient) {
@@ -98,7 +113,8 @@ const Room = () => {
                 senderName: userData.username,
                 receiverName: tab,
                 message: userData.message,
-                status: "MESSAGE"
+                status: "MESSAGE",
+                date: new Date().toLocaleString(),
             };
 
             if (userData.username !== tab) {
@@ -106,23 +122,23 @@ const Room = () => {
                 setPrivateChats(new Map(privateChats));
             }
             stompClient.send("/app/private-message", {}, JSON.stringify(chatMessage));
-            setUserData({ ...userData, "message": "" });
+            setUserData({ ...userData, message: "" });
         }
-    }
+    };
 
     const handleUsername = (event) => {
         const { value } = event.target;
-        setUserData({ ...userData, "username": value });
-    }
+        setUserData({ ...userData, username: value });
+    };
 
     const registerUser = () => {
         connect();
-    }
+    };
 
     const handleFileChange = (event) => {
         const selectedFile = event.target.files[0];
         if (selectedFile.size > maxFileSize) {
-            alert('File size exceeds 5MB limit. Please select a smaller file.');
+            alert("File size exceeds 5MB limit. Please select a smaller file.");
             setFile(null);
         } else {
             setFile(selectedFile);
@@ -132,22 +148,26 @@ const Room = () => {
     const sendFile = () => {
         if (stompClient && file) {
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append("file", file);
             var chatMessage = {
                 senderName: userData.username,
                 message: userData.message,
-                status: "MESSAGE"
+                status: "MESSAGE",
             };
-            formData.append('messageDto', JSON.stringify(chatMessage));
-            fetch('http://localhost:8080/upload', {
-                method: 'POST',
+            if(tab !== "CHATROOM"){
+                chatMessage={...chatMessage,receiverName:tab}
+            }
+            formData.append("messageDto", JSON.stringify(chatMessage));
+            fetch("http://localhost:8080/upload", {
+                method: "POST",
                 body: formData,
             })
-                .then(data => {
-                    console.log('File uploaded successfully:', data);
+                .then(() => {
+                    alert("File uploaded successfully");
+                    document.getElementById('formFileLg').value = null;
                 })
-                .catch(error => {
-                    console.error('Error uploading file:', error);
+                .catch(() => {
+                    alert("Error uploading file");
                 });
         }
     };
@@ -164,8 +184,8 @@ const Room = () => {
             const byteArray = new Uint8Array(byteNumbers);
             byteArrays.push(byteArray);
         }
-        const blob = new Blob(byteArrays, { type: 'application/octet-stream' });
-        const link = document.createElement('a');
+        const blob = new Blob(byteArrays, { type: "application/octet-stream" });
+        const link = document.createElement("a");
         link.href = window.URL.createObjectURL(blob);
         link.download = filename;
         link.click();
@@ -173,57 +193,179 @@ const Room = () => {
     };
     return (
         <div className="container">
-            {userData.connected ?
-                <div className="chat-box">
-                    <div className="member-list">
-                        <ul>
-                            <li onClick={() => { setTab("CHATROOM") }} className={`member ${tab === "CHATROOM" && "active"}`}>Chatroom</li>
-                            {[...privateChats.keys()].map((name, index) => (
-                                <li onClick={() => { setTab(name) }} className={`member ${tab === name && "active"}`} key={index}>{name}</li>
-                            ))}
-                        </ul>
-                    </div>
-                    {tab === "CHATROOM" && <div className="chat-content">
-                        <ul className="chat-messages">
-                            {publicChats.map((chat, index) => (
-                                <li className={`message ${chat.senderName === userData.username && "self"}`} key={index}>
-                                    {chat.senderName !== userData.username && <div className="avatar">{chat.senderName}</div>}
-                                    <div className="message-data">{chat.message}</div>
-                                    {chat.senderName === userData.username && <div className="avatar self">{chat.senderName}</div>}
-                                    {chat?.fileData &&
-                                    <div className="message-data"><div class="download-button" onClick={() => dowloadFile(chat?.fileData, chat?.filename)}>{chat?.filename}</div></div>
-                                    }
-                                </li>
-                            ))}
-                        </ul>
+            {userData.connected ? (
+                <MDBContainer
+                    fluid
+                    className="py-5"
+                    style={{ backgroundColor: "#eee", height: '100vh' }}
+                >
+                    <MDBRow>
+                        <MDBCol md="6" lg="5" xl="4" className="mb-4 mb-md-0">
+                            <h5 className="font-weight-bold mb-3 text-center text-lg-start">
+                                Member
+                            </h5>
+                            <MDBCard>
+                                <MDBCardBody>
+                                    <MDBTypography listUnStyled className="mb-0">
+                                        <li
+                                            onClick={() => {
+                                                setTab("CHATROOM");
+                                            }}
+                                            className={`member ${tab === "CHATROOM" && "active"}`}
+                                        >
+                                            <a href="#!" className="d-flex justify-content-between">
+                                                <div className="d-flex flex-row">
+                                                    <img
+                                                        src="https://avatar.iran.liara.run/public"
+                                                        alt="avatar"
+                                                        className="rounded-circle d-flex align-self-center me-3 shadow-1-strong"
+                                                        width="60"
+                                                    />
+                                                    <div className="pt-1">
+                                                        <p className="fw-bold mb-0">Chat room</p>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                        {[...privateChats.keys()].filter(item => item != userData?.username ).map((name, index) => (
+                                            <li
+                                                onClick={() => {
+                                                    setTab(name);
+                                                }}
+                                                className={`member ${tab === name && "active"}`}
+                                                key={index}
+                                            >
+                                                <a href="#!" className="d-flex justify-content-between">
+                                                    <div className="d-flex flex-row">
+                                                        <img
+                                                            src="https://avatar.iran.liara.run/public"
+                                                            alt="avatar"
+                                                            className="rounded-circle d-flex align-self-center me-3 shadow-1-strong"
+                                                            width="60"
+                                                        />
+                                                        <div className="pt-1">
+                                                            <p className="fw-bold mb-0">{name}</p>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </MDBTypography>
+                                </MDBCardBody>
+                            </MDBCard>
+                        </MDBCol>
 
-                        <div className="send-message">
-                            <input type="text" className="input-message" placeholder="enter the message" value={userData.message} onChange={handleMessage} />
-                            <button type="button" className="send-button" onClick={sendValue}>send</button>
-                        </div>
-                        <div className="send-message">
-                            <input className="input-message" type="file" onChange={handleFileChange} />
-                            <button onClick={sendFile} disabled={!file} type="button" className="send-button">Send File</button>
-                        </div>
-                    </div>}
-                    {tab !== "CHATROOM" && <div className="chat-content">
-                        <ul className="chat-messages">
-                            {[...privateChats.get(tab)].map((chat, index) => (
-                                <li className={`message ${chat.senderName === userData.username && "self"}`} key={index}>
-                                    {chat.senderName !== userData.username && <div className="avatar">{chat.senderName}</div>}
-                                    <div className="message-data">{chat.message}</div>
-                                    {chat.senderName === userData.username && <div className="avatar self">{chat.senderName}</div>}
-                                </li>
-                            ))}
-                        </ul>
+                        <MDBCol md="6" lg="7" xl="8">
 
-                        <div className="send-message">
-                            <input type="text" className="input-message" placeholder="enter the message" value={userData.message} onChange={handleMessage} />
-                            <button type="button" className="send-button" onClick={sendPrivateValue}>send</button>
-                        </div>
-                    </div>}
-                </div>
-                :
+                            {tab === "CHATROOM" ?
+                                <>
+                                    <ul className="chat-messages bg-white" style={{ height: "65vh", overflowY: "scroll" }}>
+                                        {publicChats.map((chat, index) => (
+                                            <li className="d-flex justify-content-between mb-4" key={index}>
+                                                {chat.senderName === userData.username &&
+                                                    <img
+                                                        src="https://avatar.iran.liara.run/public"
+                                                        alt="avatar"
+                                                        className="rounded-circle d-flex align-self-start me-3 shadow-1-strong"
+                                                        width="60"
+                                                    />}
+                                                <MDBCard>
+                                                    <MDBCardHeader className="d-flex justify-content-between p-3">
+                                                        <p className="fw-bold mb-0">{chat.senderName}</p>
+                                                        <p className="text-muted small mb-0">
+                                                            <MDBIcon far icon="clock" /> {chat?.date}
+                                                        </p>
+                                                    </MDBCardHeader>
+                                                    <MDBCardBody>
+                                                        <p className="mb-0">
+                                                            {chat.message}
+                                                            {chat?.fileData &&
+                                                                <div className="message-data"><div class="download-button" onClick={() => dowloadFile(chat?.fileData, chat?.filename)}>{chat?.filename}</div>
+                                                                </div>}
+                                                        </p>
+                                                    </MDBCardBody>
+                                                </MDBCard>
+                                                {chat.senderName !== userData.username &&
+                                                    <img
+                                                        src="https://avatar.iran.liara.run/public"
+                                                        alt="avatar"
+                                                        className="rounded-circle d-flex align-self-start me-3 shadow-1-strong"
+                                                        width="60"
+                                                    />}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <form onSubmit={sendValue}>
+                                        <div className="bg-white mb-3">
+                                            <MDBTextArea label="Message" id="textAreaExample" rows={4} value={userData.message} onChange={handleMessage} />
+                                        </div>
+                                        <MDBBtn type='submit' color="info" rounded className="float-end" disabled={!userData?.message}>
+                                            Send
+                                        </MDBBtn>
+                                    </form>
+                                    <MDBFile label='Large file input example' size='lg' id='formFileLg' onChange={handleFileChange} />
+                                    <MDBBtn type='submit' color="info" rounded className="float-end" onClick={sendFile} disabled={!file} >
+                                        Send File
+                                    </MDBBtn>
+                                </>
+                                :
+                                <>
+                                    <ul className="chat-messages bg-white" style={{ height: "65vh", overflowY: "scroll" }}>
+                                        {[...privateChats.get(tab)].map((chat, index) => (
+                                            <li className="d-flex justify-content-between mb-4" key={index}>
+                                                {chat.senderName === userData.username &&
+                                                    <img
+                                                        src="https://avatar.iran.liara.run/public"
+                                                        alt="avatar"
+                                                        className="rounded-circle d-flex align-self-start me-3 shadow-1-strong"
+                                                        width="60"
+                                                    />}
+                                                <MDBCard>
+                                                    <MDBCardHeader className="d-flex justify-content-between p-3">
+                                                        <p className="fw-bold mb-0">{chat.senderName}</p>
+                                                        <p className="text-muted small mb-0">
+                                                            <MDBIcon far icon="clock" /> {chat?.date}
+                                                        </p>
+                                                    </MDBCardHeader>
+                                                    <MDBCardBody>
+                                                        <p className="mb-0">
+                                                            {chat.message}
+                                                            {chat?.fileData &&
+                                                                <div className="message-data"><div class="download-button" onClick={() => dowloadFile(chat?.fileData, chat?.filename)}>{chat?.filename}</div>
+                                                                </div>}
+                                                        </p>
+                                                    </MDBCardBody>
+                                                </MDBCard>
+                                                {chat.senderName !== userData.username &&
+                                                    <img
+                                                        src="https://avatar.iran.liara.run/public"
+                                                        alt="avatar"
+                                                        className="rounded-circle d-flex align-self-start me-3 shadow-1-strong"
+                                                        width="60"
+                                                    />}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <form onSubmit={sendPrivateValue}>
+                                        <div className="bg-white mb-3">
+                                            <MDBTextArea label="Message" id="textAreaExample" rows={4} value={userData.message} onChange={handleMessage} />
+                                        </div>
+                                        <MDBBtn type='submit' color="info" rounded className="float-end" disabled={!userData?.message}>
+                                            Send
+                                        </MDBBtn>
+                                    </form>
+                                    <MDBFile label='Large file input example' size='lg' id='formFileLg' onChange={handleFileChange}/>
+                                    <MDBBtn type='submit' color="info" rounded className="float-end" onClick={sendFile} disabled={!file} >
+                                        Send File
+                                    </MDBBtn>
+                                </>
+                            }
+
+
+                        </MDBCol>
+                    </MDBRow>
+                </MDBContainer>
+            ) : (
                 <div className="register">
                     <input
                         id="user-name"
@@ -235,9 +377,10 @@ const Room = () => {
                     <button type="button" onClick={registerUser}>
                         connect
                     </button>
-                </div>}
+                </div>
+            )}
         </div>
-    )
-}
+    );
+};
 
-export default Room
+export default Room;
