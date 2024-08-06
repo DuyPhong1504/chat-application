@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { over } from "stompjs";
 import SockJS from "sockjs-client";
 import {
@@ -14,6 +14,7 @@ import {
     MDBCardHeader,
     MDBFile
 } from "mdb-react-ui-kit";
+import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
 
 var stompClient = null;
 const Room = () => {
@@ -28,12 +29,9 @@ const Room = () => {
         connected: false,
         message: "",
     });
-    useEffect(() => {
-        console.log(userData);
-    }, [userData]);
 
     const connect = () => {
-        let Sock = new SockJS("http://localhost:8080/ws");
+        let Sock = new SockJS(`${process.env.REACT_APP_SPRING_SERVER}/ws`);
         stompClient = over(Sock);
         stompClient.connect({}, onConnected, onError);
     };
@@ -73,7 +71,6 @@ const Room = () => {
     };
 
     const onPrivateMessage = (payload) => {
-        console.log(payload);
         var payloadData = JSON.parse(payload.body);
         if (privateChats.get(payloadData.senderName)) {
             privateChats.get(payloadData.senderName).push(payloadData);
@@ -86,8 +83,8 @@ const Room = () => {
         }
     };
 
-    const onError = (err) => {
-        console.log(err);
+    const onError = () => {
+        alert("Can not connect to server")
     };
 
     const handleMessage = (event) => {
@@ -154,11 +151,11 @@ const Room = () => {
                 message: userData.message,
                 status: "MESSAGE",
             };
-            if(tab !== "CHATROOM"){
-                chatMessage={...chatMessage,receiverName:tab}
+            if (tab !== "CHATROOM") {
+                chatMessage = { ...chatMessage, receiverName: tab }
             }
             formData.append("messageDto", JSON.stringify(chatMessage));
-            fetch("http://localhost:8080/upload", {
+            fetch(`${process.env.REACT_APP_SPRING_SERVER}/upload`, {
                 method: "POST",
                 body: formData,
             })
@@ -191,13 +188,33 @@ const Room = () => {
         link.click();
         window.URL.revokeObjectURL(link.href);
     };
+
+
+    const meeting = async (item) => {
+        const appID = 1093356179;
+        const serverSecret = `${process.env.REACT_APP_SERVER_SECRECT}`;
+        const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, "CHATROOM", userData.username, userData.username);
+        const zegocloud = ZegoUIKitPrebuilt.create(kitToken);
+        zegocloud.joinRoom(
+            {
+                container: item,
+                scenario: {
+                    mode: ZegoUIKitPrebuilt.GroupCall,
+                },
+                showScreenSharingButton: false,
+                showTextChat: false,
+                
+            }
+        );
+    }
+
     return (
         <div className="container">
             {userData.connected ? (
                 <MDBContainer
                     fluid
                     className="py-5"
-                    style={{ backgroundColor: "#eee", height: '100vh' }}
+                    style={{ backgroundColor: "#eee" }}
                 >
                     <MDBRow>
                         <MDBCol md="6" lg="5" xl="4" className="mb-4 mb-md-0">
@@ -227,7 +244,7 @@ const Room = () => {
                                                 </div>
                                             </a>
                                         </li>
-                                        {[...privateChats.keys()].filter(item => item != userData?.username ).map((name, index) => (
+                                        {[...privateChats.keys()].filter(item => item !== userData?.username).map((name, index) => (
                                             <li
                                                 onClick={() => {
                                                     setTab(name);
@@ -260,6 +277,7 @@ const Room = () => {
                             {tab === "CHATROOM" ?
                                 <>
                                     <ul className="chat-messages bg-white" style={{ height: "65vh", overflowY: "scroll" }}>
+
                                         {publicChats.map((chat, index) => (
                                             <li className="d-flex justify-content-between mb-4" key={index}>
                                                 {chat.senderName === userData.username &&
@@ -295,18 +313,17 @@ const Room = () => {
                                             </li>
                                         ))}
                                     </ul>
-                                    <form onSubmit={sendValue}>
                                         <div className="bg-white mb-3">
                                             <MDBTextArea label="Message" id="textAreaExample" rows={4} value={userData.message} onChange={handleMessage} />
                                         </div>
-                                        <MDBBtn type='submit' color="info" rounded className="float-end" disabled={!userData?.message}>
+                                        <MDBBtn  onClick={sendValue} color="info" rounded className="float-end" disabled={!userData?.message}>
                                             Send
                                         </MDBBtn>
-                                    </form>
                                     <MDBFile label='Large file input example' size='lg' id='formFileLg' onChange={handleFileChange} />
                                     <MDBBtn type='submit' color="info" rounded className="float-end" onClick={sendFile} disabled={!file} >
                                         Send File
                                     </MDBBtn>
+
                                 </>
                                 :
                                 <>
@@ -346,24 +363,19 @@ const Room = () => {
                                             </li>
                                         ))}
                                     </ul>
-                                    <form onSubmit={sendPrivateValue}>
+                                    <form>
                                         <div className="bg-white mb-3">
                                             <MDBTextArea label="Message" id="textAreaExample" rows={4} value={userData.message} onChange={handleMessage} />
                                         </div>
-                                        <MDBBtn type='submit' color="info" rounded className="float-end" disabled={!userData?.message}>
+                                        <MDBBtn onClick={sendPrivateValue} color="info" rounded className="float-end" disabled={!userData?.message}>
                                             Send
                                         </MDBBtn>
                                     </form>
-                                    <MDBFile label='Large file input example' size='lg' id='formFileLg' onChange={handleFileChange}/>
-                                    <MDBBtn type='submit' color="info" rounded className="float-end" onClick={sendFile} disabled={!file} >
-                                        Send File
-                                    </MDBBtn>
                                 </>
                             }
-
-
                         </MDBCol>
                     </MDBRow>
+                    <div ref={meeting} />
                 </MDBContainer>
             ) : (
                 <div className="register">
@@ -377,8 +389,10 @@ const Room = () => {
                     <button type="button" onClick={registerUser}>
                         connect
                     </button>
+                    
                 </div>
             )}
+
         </div>
     );
 };
